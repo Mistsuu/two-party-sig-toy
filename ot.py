@@ -22,11 +22,14 @@ class OTSender:
         ]
 
     def doRound1(self):
+        # -------------------- <get data> --------------------------
+        # ---------------------- <round> ---------------------------
         group = self.group
 
         b = group.random_scalar()
         B = b * group.generator()
 
+        # -------------------- </round> ----------------------------
         self.dataStateRound[1] = {
             "b": b,
             "B": B,
@@ -36,10 +39,12 @@ class OTSender:
         }
 
     def doRound2(self, OTReceiverRound1Msg):
+        # -------------------- <get data> --------------------------
         A = OTReceiverRound1Msg["A"]
         B = self.dataStateRound[1]["B"]
         b = self.dataStateRound[1]["b"]
 
+        # ---------------------- <round> ---------------------------
         group = self.group
 
         ρ0 = group.hash_to_scalar(b*A)
@@ -49,6 +54,7 @@ class OTSender:
         HHρ1 = group.hash_to_bytes(group.hash_to_bytes(int(ρ1)))
         ξ    = strxor(HHρ0, HHρ1)
 
+        # -------------------- </round> ----------------------------
         self.dataStateRound[2] = {
             "ρ0": ρ0,
             "ρ1": ρ1,
@@ -59,10 +65,12 @@ class OTSender:
         }
 
     def doRound3(self, OTReceiverRound2Msg):
+        # -------------------- <get data> --------------------------
         HHρ0_ = OTReceiverRound2Msg["HHρ0_"]
         ρ0    = self.dataStateRound[2]["ρ0"]
         ρ1    = self.dataStateRound[2]["ρ1"]
 
+        # ---------------------- <round> ---------------------------
         group = self.group
 
         Hρ0  = group.hash_to_bytes(int(ρ0))
@@ -70,7 +78,8 @@ class OTSender:
         HHρ0 = group.hash_to_bytes(Hρ0)
         if HHρ0_ != HHρ0:
             raise ValueError("Round 3 OT sender check failed!")
-        
+
+        # -------------------- </round> ----------------------------        
         self.dataStateRound[3] = {}
         self.toOtherRound[3] = {
             "Hρ0": Hρ0,
@@ -78,13 +87,16 @@ class OTSender:
         }
 
     def doRound4(self, OTReceiverRound3Msg):
+        # -------------------- <get data> --------------------------
         ρ0 = self.dataStateRound[2]["ρ0"]
         ρ1 = self.dataStateRound[2]["ρ1"]
 
+        # ---------------------- <round> ---------------------------
         α0, α1 = self.α
         α̅0 = α0 + ρ0
         α̅1 = α1 + ρ1
 
+        # -------------------- </round> ----------------------------
         self.dataStateRound[4] = {}
         self.toOtherRound[4] = {
             "α̅0": α̅0,
@@ -105,9 +117,12 @@ class OTReceiver:
 
 
     def doRound1(self, OTSenderRound1Msg: dict):
+        # -------------------- <get data> --------------------------
+        B = OTSenderRound1Msg["B"]
+
+        # ---------------------- <round> ---------------------------
         group = self.group
 
-        B = OTSenderRound1Msg["B"]
         a = group.random_scalar()
         G = group.generator()
         ω = self.ω
@@ -115,6 +130,7 @@ class OTReceiver:
         A  = a*G + ω*B
         ρω = group.hash_to_scalar(a*B)
 
+        # -------------------- </round> ----------------------------
         self.dataStateRound[1] = {
             "a": a,
             "A": A,
@@ -125,9 +141,11 @@ class OTReceiver:
         }
 
     def doRound2(self, OTSenderRound2Msg: dict):
+        # -------------------- <get data> --------------------------
         ρω = self.dataStateRound[1]["ρω"]
         ξ  = OTSenderRound2Msg["ξ"]
 
+        # ---------------------- <round> ---------------------------
         group = self.group
 
         Hρω  = group.hash_to_bytes(int(ρω))
@@ -137,6 +155,7 @@ class OTReceiver:
         else:
             HHρ0_ = HHρω
 
+        # -------------------- </round> ----------------------------
         self.dataStateRound[2] = {
             "HHρ0_": HHρ0_,
             "ξ":     ξ,
@@ -146,10 +165,12 @@ class OTReceiver:
         }
 
     def doRound3(self, OTSenderRound3Msg: dict):
+        # -------------------- <get data> --------------------------
         Hρ0 = OTSenderRound3Msg["Hρ0"]
         Hρ1 = OTSenderRound3Msg["Hρ1"]
         ξ   = self.dataStateRound[2]["ξ"]
 
+        # ---------------------- <round> ---------------------------
         group = self.group
 
         HHρ0 = group.hash_to_bytes(Hρ0)
@@ -157,19 +178,23 @@ class OTReceiver:
         if strxor(HHρ0, HHρ1) != ξ:
             raise ValueError("Round 3 OT receiver check failed!")
 
+        # -------------------- </round> ----------------------------
         self.dataStateRound[3] = {}
         self.toOtherRound[3]   = {}
 
     def doRound4(self, OTSenderRound4Msg: dict):
+        # -------------------- <get data> --------------------------
         α̅ = [
             OTSenderRound4Msg["α̅0"],
             OTSenderRound4Msg["α̅1"],
         ]
         ρω = self.dataStateRound[1]["ρω"]
 
+        # ---------------------- <round> ---------------------------
         ω  = self.ω
         αω = α̅[ω] - ρω
 
+        # -------------------- </round> ----------------------------
         self.dataStateRound[4] = {
             "αω": αω
         }
