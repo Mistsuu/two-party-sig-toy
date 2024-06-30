@@ -1,5 +1,5 @@
 from group import Group
-from random import randint
+from random import randint, getrandbits
 from Crypto.Util.strxor import strxor
 
 """
@@ -11,15 +11,25 @@ from Crypto.Util.strxor import strxor
 class OTSender:
     group = Group()
 
-    def __init__(self):        
+    def __init__(self, α: list):        
         self.dataStateRound = {}
         self.toOtherRound = {}
 
-        # Random element for receiver to choose
-        self.α = [
-            self.group.random_scalar(),
-            self.group.random_scalar(),
-        ]
+        """
+            Arguments:
+                - α: A list of 2 options we allow the receiver
+                     to choose.
+        """
+
+        assert isinstance(α, list) or isinstance(α, tuple), ValueError("α must be a list/tuple with a length of 2!")
+        assert len(α) == 2,                                 ValueError("α must be a list/tuple with a length of 2!")
+        try:
+            self.α = [
+                self.group.scalar(α[0]),
+                self.group.scalar(α[1]),
+            ]
+        except:
+            raise ValueError(f'α must contain 2 elements that can be converted to scalars!')
 
     def doRound1(self):
         # -------------------- <get data> --------------------------
@@ -107,14 +117,21 @@ class OTSender:
 class OTReceiver:
     group = Group()
 
-    def __init__(self) -> None:
+    def __init__(self, ω: int) -> None:
         self.dataStateRound = {}
         self.toOtherRound = {}
 
-        # Choose bit to select which element
-        # in α of sender we'll choose.
-        self.ω = randint(0, 1)
+        """
+            Arguments:
+                - ω: A bit indicating which element from sender
+                     we will choose.
+        """
 
+        try:
+            self.ω = int(ω)
+        except:
+            raise ValueError("ω must be 0 or 1!") 
+        assert ω == 0 or ω == 1, ValueError("ω must be 0 or 1!") 
 
     def doRound1(self, OTSenderRound1Msg: dict):
         # -------------------- <get data> --------------------------
@@ -202,8 +219,8 @@ class OTReceiver:
 
 
 if __name__ == '__main__':
-    sender = OTSender()
-    recver = OTReceiver()
+    sender = OTSender(α = [getrandbits(254), getrandbits(254)])
+    recver = OTReceiver(ω = randint(0, 1))
 
     sender.doRound1()
     recver.doRound1(sender.toOtherRound[1])

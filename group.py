@@ -24,6 +24,9 @@ class Group:
     def random_scalar(self):
         return self.Fn(randrange(1, self.n))
     
+    def scalar(self, x):
+        return self.Fn(x)
+    
     def encode_point(self, P) -> bytes:
         if P == 0:
             x, y, z = 0, 1, 0
